@@ -29,7 +29,7 @@ export default function HomePage({cards, setCards}) {
             <main className="flex-8 h-screen w-8/12 mt-12">
                 <div className="flex flex-col">
                     <div className="flex justify-between">
-                        <h1 className="font-bold text-4xl text-black">Good Morning Team!</h1>
+                        <h1 className="font-bold text-4xl text-black">Good Night Team!</h1>
                         <label htmlFor="my-modal-4" className="btn btn-sm text-white font-bold"> ADD NEW TRIP </label>
                     </div>
                 </div>
