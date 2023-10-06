@@ -31,7 +31,7 @@ pipeline {
                             echo 'No existing container'
                         }
                         // Use Docker credentials in the 'docker run' command
-                        sh "docker run -d -p 3001:80 --name ${MY_IMAGE} ${MY_IMAGE} -u $DOCKER_USERNAME -p $DOCKER_PASSWORD"
+                        sh "docker run -d -p 3001:80 --name ${MY_IMAGE} -u $DOCKER_USERNAME -p $DOCKER_PASSWORD"
                     }
                 }
             }
