@@ -3,49 +3,55 @@ pipeline {
     tools {
         nodejs 'nodejs'
     }
+
     environment {
-        MY_IMAGE = 'myreact-img'
-        DOCKER_HUB_CREDENTIALS_ID = 'dockerhub_id' // Replace with your Docker Hub credentials ID
+        DOCKER_REGISTRY = 'sovanseyha'
+        IMAGE_NAME = 'react-jenkin'
+        CONTAINER_NAME = 'my-container' // Specify the name of your container
     }
+
     stages {
         stage('Build') {
             steps {
-                // Retrieve Docker Hub credentials from Jenkins
-                withCredentials([usernamePassword(credentialsId: dockerhub_id, usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
-                    script {
-                        // Build the Docker image
-                        sh "docker build -t ${MY_IMAGE} ."
-
-                        // Log in to Docker Hub using credentials
-                        sh "echo \$DOCKER_PASSWORD | docker login -u \$DOCKER_USERNAME --password-stdin"
-
-                        // Push the Docker image to Docker Hub
-                        sh "docker push ${MY_IMAGE}"
-                    }
-                }
+                sh 'npm install'
+                // sh 'npm run build'
             }
         }
         stage('Test') {
             steps {
-                echo "Testing .... dg mix teh"
+                // sh 'npm run test'
+                echo "Test"
+                sh "echo IMAGE_NAME is ${env.IMAGE_NAME}" 
             }
         }
-        stage('Deploy') {
+        stage('Check for Existing Container') {
             steps {
                 script {
-                    // Check if a container with the same name exists
-                    def existImageID = sh(script: 'docker ps -aq -f name="${MY_IMAGE}"', returnStdout: true)
-                    echo "ExistImageID:${existImageID}"
-                    if (existImageID) {
-                        echo '${existImageID} is removing ...'
-                        sh 'docker rm -f ${MY_IMAGE}'
+                    def containerId = sh(script: "docker ps -a --filter name=${env.CONTAINER_NAME} -q", returnStdout: true).trim()
+                    sh "echo containerId is ${containerId}" 
+                    if (containerId) {
+                        sh "docker stop ${containerId}"
+                        sh "docker rm ${containerId}"
                     } else {
-                        echo 'No existing container'
+                        sh "echo No existing container to remove"
                     }
                 }
-                // Run the Docker container with port mapping
-                sh "docker run -d -p 3001:80 --name ${MY_IMAGE} ${MY_IMAGE}"
             }
         }
+        stage('Build Image') {
+            steps {
+                script {
+                    def buildNumber = currentBuild.number
+                    def imageTag = "${IMAGE_NAME}:${buildNumber}"
+                    sh "docker build -t ${DOCKER_REGISTRY}/${imageTag} ."
+
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub_id',
+                            passwordVariable: 'PASS', usernameVariable: 'USER')]) {
+                        sh "echo \$PASS | docker login -u \$USER --password-stdin"
+                        sh "docker push ${DOCKER_REGISTRY}/${imageTag}"
+                    }
+                }
+            }
+        }      
     }
 }
