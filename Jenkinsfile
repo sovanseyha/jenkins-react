@@ -1,31 +1,35 @@
 pipeline {
     agent any
-    tools {
-        nodejs 'nodejs' 
+    tools{
+        nodejs 'nodejs'
+    }
+    environment{
+        MY_IMAGE='react-image'
     }
     stages {
         stage('Build') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'github_id',
-                        passwordVariable: 'PASS', usernameVariable: 'USER')]) {
-                    script {
-                        // Build the Docker image
-                        sh 'docker build -t sovanseyha/myweb .'
-
-                        // Log in to Docker Hub using credentials
-                        sh "echo \$PASS | docker login -u \$USER --password-stdin"
-
-                        // Push the Docker image to Docker Hub
-                        sh 'docker push sovanseyha/myweb'
-                    }
-                }
+                sh 'docker build -t ${MY_IMAGE} .'
+            }
+        }
+        stage('Test') {
+            steps {
+                echo "Testing .... dg mix teh"
             }
         }
         stage('Deploy') {
             steps {
-                // Build and deploy using Docker Compose
-                sh 'docker compose build'
-                sh 'docker compose up -d'
+                script{
+                def existImageID= sh(script: 'docker ps -aq -f name="${MY_IMAGE}"',returnStdout:true)
+                    echo "ExistImageID:${existImageID}"
+                    if(existImageID){
+                        echo '${existImageID} is removing ...'
+                        sh 'docker rm -f ${MY_IMAGE}'
+                    }else{
+                        echo 'No existing container'
+                    }
+                }
+                sh 'docker run -d -p 3001:80 --name ${MY_IMAGE} ${MY_IMAGE}'
             }
         }
     }
