@@ -5,7 +5,7 @@ pipeline {
     }
     environment {
         MY_IMAGE = 'myreact-img'
-        DOCKER_HUB_CREDENTIALS_ID = 'your_dockerhub_credentials_id' // Replace with your Docker Hub credentials ID
+        DOCKER_HUB_CREDENTIALS_ID = 'dockerhub_id' // Replace with your Docker Hub credentials ID
     }
     stages {
         stage('Build') {
