@@ -11,7 +11,7 @@ pipeline {
         stage('Build') {
             steps {
                 // Retrieve Docker Hub credentials from Jenkins
-                withCredentials([usernamePassword(credentialsId: DOCKER_HUB_CREDENTIALS_ID, usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                withCredentials([usernamePassword(credentialsId: dockerhub_id, usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
                     script {
                         // Build the Docker image
                         sh "docker build -t ${MY_IMAGE} ."
