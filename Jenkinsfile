@@ -1,9 +1,7 @@
 pipeline {
-    agent {
-      label 'Node 1'
-    }
+    agent any
     tools{
-        nodejs 'NodeJS'
+        nodejs 'nodejs'
     }
     environment{
         MY_IMAGE='seiha-react'
