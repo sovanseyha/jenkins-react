@@ -1,15 +1,28 @@
 pipeline {
     agent any
-    tools{
+    tools {
         nodejs 'nodejs'
     }
-    environment{
-        MY_IMAGE='react-image'
+    environment {
+        MY_IMAGE = 'myreact-img'
+        DOCKER_HUB_CREDENTIALS_ID = 'your_dockerhub_credentials_id' // Replace with your Docker Hub credentials ID
     }
     stages {
         stage('Build') {
             steps {
-                sh 'docker build -t ${MY_IMAGE} .'
+                // Retrieve Docker Hub credentials from Jenkins
+                withCredentials([usernamePassword(credentialsId: DOCKER_HUB_CREDENTIALS_ID, usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                    script {
+                        // Build the Docker image
+                        sh "docker build -t ${MY_IMAGE} ."
+
+                        // Log in to Docker Hub using credentials
+                        sh "echo \$DOCKER_PASSWORD | docker login -u \$DOCKER_USERNAME --password-stdin"
+
+                        // Push the Docker image to Docker Hub
+                        sh "docker push ${MY_IMAGE}"
+                    }
+                }
             }
         }
         stage('Test') {
@@ -19,17 +32,19 @@ pipeline {
         }
         stage('Deploy') {
             steps {
-                script{
-                def existImageID= sh(script: 'docker ps -aq -f name="${MY_IMAGE}"',returnStdout:true)
+                script {
+                    // Check if a container with the same name exists
+                    def existImageID = sh(script: 'docker ps -aq -f name="${MY_IMAGE}"', returnStdout: true)
                     echo "ExistImageID:${existImageID}"
-                    if(existImageID){
+                    if (existImageID) {
                         echo '${existImageID} is removing ...'
                         sh 'docker rm -f ${MY_IMAGE}'
-                    }else{
+                    } else {
                         echo 'No existing container'
                     }
                 }
-                sh 'docker run -d -p 3001:80 --name ${MY_IMAGE} ${MY_IMAGE}'
+                // Run the Docker container with port mapping
+                sh "docker run -d -p 3001:80 --name ${MY_IMAGE} ${MY_IMAGE}"
             }
         }
     }
