@@ -38,7 +38,7 @@ export default function HeroBanner() {
         {/* item  */}
         <div className="flex justify-end pl-3 mt-4">
           <p className="text-white font-normal text-2xl">
-            I like laying down on the sand and look at the moon.
+            I like laying down on the sand and look at the moon. i love you hahahha
           </p>
         </div>
 
