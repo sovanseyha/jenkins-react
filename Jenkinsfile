@@ -1,7 +1,7 @@
 pipeline {
     agent any
     tools {
-        nodejs 'nodejs'
+        nodejs 'nodejs' // Make sure 'nodejs' matches your configured Node.js tool name
     }
 
     environment {
@@ -21,7 +21,7 @@ pipeline {
         }
         stage('Test') {
             steps {
-                // sh 'npm run test'
+                sh 'npm run test' // Uncomment this line when you're ready to run tests
                 sh "echo IMAGE_NAME is ${env.IMAGE_NAME}"
             }
         }
@@ -67,7 +67,7 @@ pipeline {
                         def existImageID = sh(script: "docker ps -aq -f name=${MY_IMAGE}", returnStdout: true).trim()
                         echo "ExistImageID:${existImageID}"
                         if (existImageID) {
-                            echo '${existImageID} is removing ...'
+                            echo "${existImageID} is removing ..."
                             sh "docker rm -f ${MY_IMAGE}"
                         } else {
                             echo 'No existing container'
