@@ -5,6 +5,8 @@ pipeline {
     }
     environment {
         MY_IMAGE = 'seiha-react-img'
+        DOCKER_REGISTRY = 'sovanseyha'
+        CONTAINER_NAME = 'jenkins-container' // Specify the name of your container
     }
     stages {
         stage('Build') {
