@@ -27,7 +27,6 @@ pipeline {
         stage('Check for Existing Container') {
             steps {
                 script {
-                    def containerId = sh(script: "docker ps -a --filter name=${env.CONTAINER_NAME} -q", returnStdout: true).trim()
                     sh "echo containerId is ${containerId}" 
                     sh "whoami"
                     if (containerId) {
