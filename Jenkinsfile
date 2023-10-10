@@ -21,7 +21,6 @@ pipeline {
         }
         stage('Test') {
             steps {
-                sh 'npm run test' // Uncomment this line when you're ready to run tests
                 sh "echo IMAGE_NAME is ${env.IMAGE_NAME}"
             }
         }
