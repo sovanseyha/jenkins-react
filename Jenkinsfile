@@ -19,11 +19,12 @@ pipeline {
                 sh 'npm run build'
             }
         }
-        // stage('Test') {
-        //     steps {
-        //         sh 'npm run test'
-        //     }
-        // }
+        stage('Test') {
+            steps {
+                // sh 'npm run test'
+                sh "echo IMAGE_NAME is ${env.IMAGE_NAME}"
+            }
+        }
         stage('Check for Existing Container') {
             steps {
                 script {
@@ -53,7 +54,7 @@ pipeline {
                 }
             }
         }
-        stage('Test') {
+        stage('Test2') {
             steps {
                 echo "Testing ~~~~~~~~~~~~~~~"
             }
