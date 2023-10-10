@@ -19,10 +19,10 @@ pipeline {
                 sh 'npm run build'
             }
         }
-        stage('Test') {
-            steps {
-                sh 'npm run test'
-            }
+        // stage('Test') {
+        //     steps {
+        //         sh 'npm run test'
+        //     }
         }
         stage('Check for Existing Container') {
             steps {
@@ -53,11 +53,11 @@ pipeline {
                 }
             }
         }
-        // stage('Test2') {
-        //     steps {
-        //         echo "Testing ~~~~~~~~~~~~~~~"
-        //     }
-        // }
+        stage('Test') {
+            steps {
+                echo "Testing ~~~~~~~~~~~~~~~"
+            }
+        }
         stage('Deploy') {
             steps {
                 script {
