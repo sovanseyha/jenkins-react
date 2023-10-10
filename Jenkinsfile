@@ -6,8 +6,9 @@ pipeline {
 
     environment {
         DOCKER_REGISTRY = 'sovanseyha'
-        IMAGE_NAME = 'react-jenkin'
-        CONTAINER_NAME = 'my-container' // Specify the name of your container
+        IMAGE_NAME = 'react-jenkins'
+        CONTAINER_NAME = 'react-jenkins-container'
+        MY_IMAGE = "${DOCKER_REGISTRY}/${IMAGE_NAME}:${currentBuild.number}"
     }
 
     stages {
@@ -15,14 +16,12 @@ pipeline {
             steps {
                 sh 'whoami'
                 sh 'npm install'
-                // sh 'npm run build'
+                sh 'npm run build'
             }
         }
         stage('Test') {
             steps {
-                // sh 'npm run test'
-                echo "Test"
-                sh "echo IMAGE_NAME is ${env.IMAGE_NAME}" 
+                sh 'npm run test'
             }
         }
         stage('Check for Existing Container') {
@@ -43,33 +42,32 @@ pipeline {
         stage('Build Image') {
             steps {
                 script {
-                    def buildNumber = currentBuild.number
-                    def imageTag = "${IMAGE_NAME}:${buildNumber}"
-                    sh "docker build -t ${DOCKER_REGISTRY}/${imageTag} ."
+                    def imageTag = "${DOCKER_REGISTRY}/${IMAGE_NAME}:${currentBuild.number}"
+                    sh "docker build -t ${imageTag} ."
 
                     withCredentials([usernamePassword(credentialsId: 'dockerhub_id',
                             passwordVariable: 'PASS', usernameVariable: 'USER')]) {
                         sh "echo \$PASS | docker login -u \$USER --password-stdin"
-                        sh "docker push ${DOCKER_REGISTRY}/${imageTag}"
+                        sh "docker push ${imageTag}"
                     }
                 }
             }
         }
-        stage('Test') {
-            steps {
-                echo "Testing ~~~~~~~~~~~~~~~"
-            }
-        }
+        // stage('Test2') {
+        //     steps {
+        //         echo "Testing ~~~~~~~~~~~~~~~"
+        //     }
+        // }
         stage('Deploy') {
             steps {
                 script {
                     // Retrieve Docker credentials from Jenkins
                     withCredentials([usernamePassword(credentialsId: 'dockerhub_id', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
-                        def existImageID = sh(script: 'docker ps -aq -f name="${MY_IMAGE}"', returnStdout: true)
+                        def existImageID = sh(script: "docker ps -aq -f name=${MY_IMAGE}", returnStdout: true).trim()
                         echo "ExistImageID:${existImageID}"
                         if (existImageID) {
                             echo '${existImageID} is removing ...'
-                            sh 'docker rm -f ${MY_IMAGE}'
+                            sh "docker rm -f ${MY_IMAGE}"
                         } else {
                             echo 'No existing container'
                         }
