@@ -24,6 +24,11 @@ pipeline {
                 }
             }
         }
+        stage('Test') {
+            steps {
+                echo "Testing ~~~~~~~~~~~~~~~"
+            }
+        }
         stage('Deploy') {
             steps {
                 script {
@@ -43,38 +48,40 @@ pipeline {
                 }
             }
         }
-    }
-    post {
-        success {
-            stage('Push Success Notification') {
-                steps {
-                    script {
-                        withCredentials([string(credentialsId: 'telegramToken', variable: 'TOKEN'),
-                                        string(credentialsId: 'telegramChatid', variable: 'CHAT_ID')]) {
-                            sh """
-                                curl -s -X POST https://api.telegram.org/bot\${TOKEN}/sendMessage -d chat_id=\${CHAT_ID} -d parse_mode="HTML" -d text="Jenkins Build Report:
-                                <b>Project</b> : jenkins-react
-                                <b>Branch</b>: master
-                                <b>Build and Test Status</b>: <font color='green'>Success</font>"
-                            """
-                        }
+        stage('Push Success Notification') {
+            when {
+                expression { currentBuild.resultIsBetterOrEqualTo('SUCCESS') }
+            }
+            steps {
+                script {
+                    withCredentials([string(credentialsId: 'telegramToken', variable: 'TOKEN'),
+                                    string(credentialsId: 'telegramChatid', variable: 'CHAT_ID')]) {
+                        def consoleOutput = currentBuild.rawBuild.getLog(1000) // Get the last 1000 lines of console output
+                        sh """
+                            curl -s -X POST https://api.telegram.org/bot\${TOKEN}/sendMessage -d chat_id=\${CHAT_ID} -d parse_mode="HTML" -d text="Jenkins Build Report:
+                            <b>Project</b> : jenkins-react
+                            <b>Branch</b>: master
+                            <b>Build and Test Status</b>: <font color='green'>Success</font>"
+                        """
                     }
                 }
             }
         }
-        failure {
-            stage('Push Failure Notification') {
-                steps {
-                    script {
-                        withCredentials([string(credentialsId: 'telegramToken', variable: 'TOKEN'),
-                                        string(credentialsId: 'telegramChatid', variable: 'CHAT_ID')]) {
-                            sh """
-                                curl -s -X POST https://api.telegram.org/bot\${TOKEN}/sendMessage -d chat_id=\${CHAT_ID} -d parse_mode="HTML" -d text="Jenkins Build Report:
-                                <b>Project</b> : jenkins-react
-                                <b>Branch</b>: master
-                                <b>Build and Test Status</b>: <font color='red'>Failure</font>"
-                            """
-                        }
+        stage('Push Failure Notification') {
+            when {
+                expression { currentBuild.resultIsWorseOrEqualTo('FAILURE') }
+            }
+            steps {
+                script {
+                    withCredentials([string(credentialsId: 'telegramToken', variable: 'TOKEN'),
+                                    string(credentialsId: 'telegramChatid', variable: 'CHAT_ID')]) {
+                        def consoleOutput = currentBuild.rawBuild.getLog(1000) // Get the last 1000 lines of console output
+                        sh """
+                            curl -s -X POST https://api.telegram.org/bot\${TOKEN}/sendMessage -d chat_id=\${CHAT_ID} -d parse_mode="HTML" -d text="Jenkins Build Report:
+                            <b>Project</b> : jenkins-react
+                            <b>Branch</b>: master
+                            <b>Build and Test Status</b>: <font color='red'>Failure</font>"
+                        """
                     }
                 }
             }
