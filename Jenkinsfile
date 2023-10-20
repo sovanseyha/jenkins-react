@@ -13,7 +13,7 @@ pipeline {
             steps {
                 sh "whoami"
                 sh "npm install"
-                sh "exit 1" // Simulate a build failure
+                sh "docker build -t ${MY_IMAGE} ."
             }
             post {
                 failure {
@@ -90,7 +90,7 @@ pipeline {
                 withCredentials([string(credentialsId: 'telegramToken', variable: 'TOKEN'),
                                 string(credentialsId: 'telegramChatid', variable: 'CHAT_ID')]) {
                     sh """
-                        curl -s -X POST https://api.telegram.org/bot\${TOKEN}/sendMessage -d chat_id=\${CHAT_ID} -d parse_mode="HTML" -d text="\n
+                        curl -s -X POST https://api.telegram.org/bot\${TOKEN}/sendMessage -d chat_id=\${CHAT_ID} -d parse_mode="HTML" -d text="\n\t
                         <b>Project</b> : jenkins-react \n
                         <b>Branch</b>: master \n
                         <b>Build </b> : OK \n
