@@ -13,7 +13,7 @@ pipeline {
             steps {
                 sh "whoami"
                 sh "npm install"
-                sh "docker build -t ${MY_IMAGE} ."
+                sh "docker build -t ${MY_IMAGE}"
             }
         }
         stage('Test') {
