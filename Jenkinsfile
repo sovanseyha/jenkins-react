@@ -46,10 +46,10 @@ pipeline {
                     withCredentials([string(credentialsId: 'telegramToken', variable: 'TOKEN'),
                                     string(credentialsId: 'telegramChatid', variable: 'CHAT_ID')]) {
                         sh """
-                            curl -s -X POST https://api.telegram.org/bot\${TOKEN}/sendMessage -d chat_id=\${CHAT_ID} -d parse_mode="HTML" -d text="<b>Project</b> : POC \
+                            curl -s -X POST https://api.telegram.org/bot\${TOKEN}/sendMessage -d chat_id=\${CHAT_ID} -d parse_mode="HTML" -d text="<b>Project</b> : jenkins-react \
                             <b>Branch</b>: master \
                             <b>Build </b> : OK \
-                            <b>Test suite</b> = Passed"
+                            <b>Test </b> = Passed"
                         """
                     }
                 }
