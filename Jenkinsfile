@@ -13,7 +13,7 @@ pipeline {
             steps {
                 sh "whoami"
                 sh "npm install"
-                sh "docker build -t ${MY_IMAGE}"
+                sh "docker build -t ${MY_IMAGE} ."
             }
         }
         stage('Test') {
@@ -46,12 +46,12 @@ pipeline {
                     withCredentials([string(credentialsId: 'telegramToken', variable: 'TOKEN'),
                                     string(credentialsId: 'telegramChatid', variable: 'CHAT_ID')]) {
                         sh """
-                            curl -s -X POST https://api.telegram.org/bot\${TOKEN}/sendMessage -d chat_id=\${CHAT_ID} -d parse_mode="HTML" -d text="\n\t
-                            <b>Project</b> : jenkins-react \n
-                            <b>Branch</b>: master \n
-                            <b>Build </b> : OK \n
-                            <b>Test </b> : Passed \n
-                            <b>Deploy </b> : OK"
+                            curl -s -X POST https://api.telegram.org/bot\${TOKEN}/sendMessage -d chat_id=\${CHAT_ID} -d parse_mode="HTML" -d text="Jenkins Build Report:
+                            <b>Project</b> : jenkins-react
+                            <b>Branch</b>: master
+                            <b>Build Status</b>: <font color='red'>Failed</font>
+                            <b>Test Status</b>: <font color='green'>Passed</font>
+                            <b>Deploy Status</b>: <font color='blue'>OK</font>"
                         """
                     }
                 }
