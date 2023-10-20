@@ -49,9 +49,9 @@ pipeline {
                             curl -s -X POST https://api.telegram.org/bot\${TOKEN}/sendMessage -d chat_id=\${CHAT_ID} -d parse_mode="HTML" -d text="Jenkins Build Report:
                             <b>Project</b> : jenkins-react
                             <b>Branch</b>: master
-                            <b>Build Status</b>: <font color='red'>Failed</font>
-                            <b>Test Status</b>: <font color='green'>Passed</font>
-                            <b>Deploy Status</b>: <font color='blue'>OK</font>"
+                            <b>Build Status</b>: Failed
+                            <b>Test Status</b>: Passed
+                            <b>Deploy Status</b>: OK"
                         """
                     }
                 }
