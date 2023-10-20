@@ -6,7 +6,7 @@ pipeline {
     environment {
         MY_IMAGE = 'seiha-react-img'
         DOCKER_REGISTRY = 'sovanseyha'
-        CONTAINER_NAME = 'jenkins-container'
+        CONTAINER_NAME = 'jenkins-container' // Specify the name of your container
     }
     stages {
         stage('Build') {
@@ -15,45 +15,16 @@ pipeline {
                 sh "npm install"
                 sh "docker build -t ${MY_IMAGE} ."
             }
-            post {
-                failure {
-                    script {
-                        withCredentials([string(credentialsId: 'telegramToken', variable: 'TOKEN'),
-                                        string(credentialsId: 'telegramChatid', variable: 'CHAT_ID')]) {
-                            sh """
-                                curl -s -X POST https://api.telegram.org/bot\${TOKEN}/sendMessage -d chat_id=\${CHAT_ID} -d parse_mode="HTML" -d text="\n
-                                <b>Project</b> : jenkins-react \n
-                                <b>Branch</b>: master \n
-                                <b>Build </b> : Failed"
-                            """
-                        }
-                    }
-                }
-            }
         }
         stage('Test') {
             steps {
                 echo "Testing ~~~~~~~~~~~~~~~"
             }
-            post {
-                failure {
-                    script {
-                        withCredentials([string(credentialsId: 'telegramToken', variable: 'TOKEN'),
-                                        string(credentialsId: 'telegramChatid', variable: 'CHAT_ID')]) {
-                            sh """
-                                curl -s -X POST https://api.telegram.org/bot\${TOKEN}/sendMessage -d chat_id=\${CHAT_ID} -d parse_mode="HTML" -d text="\n
-                                <b>Project</b> : jenkins-react \n
-                                <b>Branch</b>: master \n
-                                <b>Test </b> : Failed"
-                            """
-                        }
-                    }
-                }
-            }
         }
         stage('Deploy') {
             steps {
                 script {
+                    // Retrieve Docker credentials from Jenkins
                     withCredentials([usernamePassword(credentialsId: 'dockerhub_id', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
                         def existImageID = sh(script: 'docker ps -aq -f name="${MY_IMAGE}"', returnStdout: true)
                         echo "ExistImageID:${existImageID}"
@@ -63,40 +34,26 @@ pipeline {
                         } else {
                             echo 'No existing container'
                         }
+                        // Use Docker credentials in the 'docker run' command
                         sh "docker run -d -p 3001:80 --name ${MY_IMAGE} -e DOCKER_USERNAME=$DOCKER_USERNAME -e DOCKER_PASSWORD=$DOCKER_PASSWORD ${MY_IMAGE}"
                     }
                 }
             }
-            post {
-                failure {
-                    script {
-                        withCredentials([string(credentialsId: 'telegramToken', variable: 'TOKEN'),
-                                        string(credentialsId: 'telegramChatid', variable: 'CHAT_ID')]) {
-                            sh """
-                                curl -s -X POST https://api.telegram.org/bot\${TOKEN}/sendMessage -d chat_id=\${CHAT_ID} -d parse_mode="HTML" -d text="\n
-                                <b>Project</b> : jenkins-react \n
-                                <b>Branch</b>: master \n
-                                <b>Deploy </b> : Failed"
-                            """
-                        }
-                    }
-                }
-            }
         }
-    }
-    stage('Push Notification') {
-        steps {
-            script {
-                withCredentials([string(credentialsId: 'telegramToken', variable: 'TOKEN'),
-                                string(credentialsId: 'telegramChatid', variable: 'CHAT_ID')]) {
-                    sh """
-                        curl -s -X POST https://api.telegram.org/bot\${TOKEN}/sendMessage -d chat_id=\${CHAT_ID} -d parse_mode="HTML" -d text="\n\t
-                        <b>Project</b> : jenkins-react \n
-                        <b>Branch</b>: master \n
-                        <b>Build </b> : OK \n
-                        <b>Test </b> : Passed \n
-                        <b>Deploy </b> : OK"
-                    """
+        stage('Push Notification') {
+            steps {
+                script {
+                    withCredentials([string(credentialsId: 'telegramToken', variable: 'TOKEN'),
+                                    string(credentialsId: 'telegramChatid', variable: 'CHAT_ID')]) {
+                        sh """
+                            curl -s -X POST https://api.telegram.org/bot\${TOKEN}/sendMessage -d chat_id=\${CHAT_ID} -d parse_mode="HTML" -d text="\n\t
+                            <b>Project</b> : jenkins-react \n
+                            <b>Branch</b>: master \n
+                            <b>Build </b> : OK \n
+                            <b>Test </b> : Passed \n
+                            <b>Deploy </b> : OK"
+                        """
+                    }
                 }
             }
         }
