@@ -9,19 +9,11 @@ pipeline {
         CONTAINER_NAME = 'jenkins-container' // Specify the name of your container
     }
     stages {
-        stage('Build and Test') {
+        stage('Build') {
             steps {
-                script {
-                    try {
-                        sh "whoami"
-                        sh "npm install"
-                        sh "docker build -t ${MY_IMAGE} ."
-                        currentBuild.result = 'SUCCESS'
-                    } catch (Exception e) {
-                        currentBuild.result = 'FAILURE'
-                        currentBuild.description = e.toString()
-                    }
-                }
+                sh "whoami"
+                sh "npm install"
+                sh "docker build -t ${MY_IMAGE} ."
             }
         }
         stage('Test') {
@@ -48,20 +40,18 @@ pipeline {
                 }
             }
         }
-        stage('Push Success Notification') {
-            when {
-                expression { currentBuild.resultIsBetterOrEqualTo('SUCCESS') }
-            }
+        stage('Push Notification') {
             steps {
                 script {
                     withCredentials([string(credentialsId: 'telegramToken', variable: 'TOKEN'),
                                     string(credentialsId: 'telegramChatid', variable: 'CHAT_ID')]) {
-                        def consoleOutput = currentBuild.rawBuild.getLog(1000) // Get the last 1000 lines of console output
                         sh """
                             curl -s -X POST https://api.telegram.org/bot\${TOKEN}/sendMessage -d chat_id=\${CHAT_ID} -d parse_mode="HTML" -d text="Jenkins Build Report:
                             <b>Project</b> : jenkins-react
                             <b>Branch</b>: master
-                            <b>Build and Test Status</b>: Success"
+                            <b>Build Status</b>: Succeed
+                            <b>Test Status</b>: Passed
+                            <b>Deploy Status</b>: OK"
                         """
                     }
                 }
