@@ -67,24 +67,5 @@ pipeline {
                 }
             }
         }
-        stage('Push Failure Notification') {
-            when {
-                expression { currentBuild.resultIsWorseOrEqualTo('FAILURE') }
-            }
-            steps {
-                script {
-                    withCredentials([string(credentialsId: 'telegramToken', variable: 'TOKEN'),
-                                    string(credentialsId: 'telegramChatid', variable: 'CHAT_ID')]) {
-                        def consoleOutput = currentBuild.rawBuild.getLog(1000) // Get the last 1000 lines of console output
-                        sh """
-                            curl -s -X POST https://api.telegram.org/bot\${TOKEN}/sendMessage -d chat_id=\${CHAT_ID} -d parse_mode="HTML" -d text="Jenkins Build Report:
-                            <b>Project</b> : jenkins-react
-                            <b>Branch</b>: master
-                            <b>Build and Test Status</b>: <font color='red'>Failure</font>"
-                        """
-                    }
-                }
-            }
-        }
     }
 }
