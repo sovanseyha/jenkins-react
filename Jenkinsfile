@@ -13,12 +13,42 @@ pipeline {
             steps {
                 sh "whoami"
                 sh "npm install"
-                sh "docker build -t ${MY_IMAGE} ."
+                sh "exit 1" // Simulate a build failure
+            }
+            post {
+                failure {
+                    script {
+                        withCredentials([string(credentialsId: 'telegramToken', variable: 'TOKEN'),
+                                        string(credentialsId: 'telegramChatid', variable: 'CHAT_ID')]) {
+                            sh """
+                                curl -s -X POST https://api.telegram.org/bot\${TOKEN}/sendMessage -d chat_id=\${CHAT_ID} -d parse_mode="HTML" -d text="\n
+                                <b>Project</b> : jenkins-react \n
+                                <b>Branch</b>: master \n
+                                <b>Build </b> : Failed"
+                            """
+                        }
+                    }
+                }
             }
         }
         stage('Test') {
             steps {
                 echo "Testing ~~~~~~~~~~~~~~~"
+            }
+            post {
+                failure {
+                    script {
+                        withCredentials([string(credentialsId: 'telegramToken', variable: 'TOKEN'),
+                                        string(credentialsId: 'telegramChatid', variable: 'CHAT_ID')]) {
+                            sh """
+                                curl -s -X POST https://api.telegram.org/bot\${TOKEN}/sendMessage -d chat_id=\${CHAT_ID} -d parse_mode="HTML" -d text="\n
+                                <b>Project</b> : jenkins-react \n
+                                <b>Branch</b>: master \n
+                                <b>Test </b> : Failed"
+                            """
+                        }
+                    }
+                }
             }
         }
         stage('Deploy') {
@@ -37,12 +67,8 @@ pipeline {
                     }
                 }
             }
-        }
-    }
-    post {
-        failure {
-            stage('Push Error Notification') {
-                steps {
+            post {
+                failure {
                     script {
                         withCredentials([string(credentialsId: 'telegramToken', variable: 'TOKEN'),
                                         string(credentialsId: 'telegramChatid', variable: 'CHAT_ID')]) {
@@ -50,8 +76,7 @@ pipeline {
                                 curl -s -X POST https://api.telegram.org/bot\${TOKEN}/sendMessage -d chat_id=\${CHAT_ID} -d parse_mode="HTML" -d text="\n
                                 <b>Project</b> : jenkins-react \n
                                 <b>Branch</b>: master \n
-                                <b>Build </b> : Failed \n
-                                <b>Test </b> = Failed"
+                                <b>Deploy </b> : Failed"
                             """
                         }
                     }
@@ -69,7 +94,8 @@ pipeline {
                         <b>Project</b> : jenkins-react \n
                         <b>Branch</b>: master \n
                         <b>Build </b> : OK \n
-                        <b>Test </b> = Passed"
+                        <b>Test </b> : Passed \n
+                        <b>Deploy </b> : OK"
                     """
                 }
             }
