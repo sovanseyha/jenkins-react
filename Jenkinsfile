@@ -11,9 +11,17 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                sh "whoami"
-                sh "npm install"
-                sh "docker build -t ${MY_IMAGE} ."
+                script {
+                    try {
+                        sh "whoami"
+                        sh "npm install"
+                        sh "docker build -t ${MY_IMAGE} ."
+                        currentBuild.result = 'SUCCESS'
+                    } catch (Exception e) {
+                        currentBuild.result = 'FAILURE'
+                        currentBuild.description = e.toString()
+                    }
+                }
             }
         }
         stage('Test') {
@@ -45,11 +53,12 @@ pipeline {
                 script {
                     withCredentials([string(credentialsId: 'telegramToken', variable: 'TOKEN'),
                                     string(credentialsId: 'telegramChatid', variable: 'CHAT_ID')]) {
+                        def status = currentBuild.resultIsBetterOrEqualTo('SUCCESS') ? 'Succeed' : 'Failed'
                         sh """
                             curl -s -X POST https://api.telegram.org/bot\${TOKEN}/sendMessage -d chat_id=\${CHAT_ID} -d parse_mode="HTML" -d text="Jenkins Build Report:
                             <b>Project</b> : jenkins-react
                             <b>Branch</b>: master
-                            <b>Build Status</b>: Succeed
+                            <b>Build Status</b>: ${status}
                             <b>Test Status</b>: Passed
                             <b>Deploy Status</b>: OK"
                         """
