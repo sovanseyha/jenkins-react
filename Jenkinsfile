@@ -59,8 +59,8 @@ pipeline {
                             <b>Project</b> : jenkins-react
                             <b>Branch</b>: master
                             <b>Build Status</b>: ${status}
-                            <b>Test Status</b>: Passed
-                            <b>Deploy Status</b>: OK"
+                            <b>Test Status</b>: ${status}
+                            <b>Deploy Status</b>: ${status}"
                         """
                     }
                 }
