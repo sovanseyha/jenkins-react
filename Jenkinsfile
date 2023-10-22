@@ -18,7 +18,7 @@ pipeline {
                     try {
                         sh "whoami"
                         sh "npm install"
-                        sh "docker build -t ${MY_IMAGE} ."
+                        sh "docker build -t ${MY_IMAGE}"
                         currentBuild.result = 'SUCCESS'
                         sendToTelegram("✅ Build Succeeded for Build #${BUILD_NUMBER}")
                     } catch (Exception e) {
@@ -34,7 +34,18 @@ pipeline {
             steps {
                 script {
                     def status = currentBuild.resultIsBetterOrEqualTo('SUCCESS') ? 'Succeed' : 'Failed'
-                    sendToTelegram("🧪 Testing Status: ${status} for Build #${BUILD_NUBER}")
+
+                    // Capture a specific error from the console log for the 'Test' stage
+                    def testErrorLog = sh(
+                        script: 'cat ${JENKINS_HOME}/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log | grep "SpecificTestErrorPattern"',
+                        returnStdout: true
+                    )
+
+                    if (testErrorLog) {
+                        sendToTelegram("❌ Test Failed for Build #${BUILD_NUMBER}\nSpecific Test Error:\n${testErrorLog}")
+                    } else {
+                        sendToTelegram("🧪 Testing Status: ${status} for Build #${BUILD_NUMBER}")
+                    }
                 }
             }
         }
@@ -52,10 +63,22 @@ pipeline {
                             echo 'No existing container'
                         }
                         // Use Docker credentials in the 'docker run' command
-                        sh "docker run -d -p 3001:80 --name ${MY_IMGE} -e DOCKER_USERNAME=$DOCKER_USERNAME -e DOCKER_PASSWORD=$DOCKER_PASSWORD ${MY_IMAGE}"
+                        sh "docker run -d -p 3001:80 --name ${MY_IMAGE} -e DOCKER_USERNAME=$DOCKER_USERNAME -e DOCKER_PASSWORD=$DOCKER_PASSWORD ${MY_IMAGE}"
                     }
+
                     def status = currentBuild.resultIsBetterOrEqualTo('SUCCESS') ? 'Succeed' : 'Failed'
-                    sendToTelegram("🚀 Deployment Status: ${status} for Build #${BUILD_NUMBER}")
+
+                    // Capture a specific error from the console log for the 'Deploy' stage
+                    def deployErrorLog = sh(
+                        script: 'cat ${JENKINS_HOME}/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log | grep "SpecificDeployErrorPattern"',
+                        returnStdout: true
+                    )
+
+                    if (deployErrorLog) {
+                        sendToTelegram("❌ Deployment Failed for Build #${BUILD_NUMBER}\nSpecific Deploy Error:\n${deployErrorLog}")
+                    } else {
+                        sendToTelegram("🚀 Deployment Status: ${status} for Build #${BUILD_NUMBER}")
+                    }
                 }
             }
         }
