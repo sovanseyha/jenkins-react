@@ -18,7 +18,7 @@ pipeline {
                     try {
                         sh "whoami"
                         sh "npm install"
-                        sh "docker build -t ${MY_IMAGE}"
+                        sh "docker build -t ${MY_IMAGE} ."
                         currentBuild.result = 'SUCCESS'
                         sendToTelegram("✅ Build Succeeded for Build #${BUILD_NUMBER}")
                     } catch (Exception e) {
@@ -44,7 +44,7 @@ pipeline {
                     if (testErrorLog) {
                         sendToTelegram("❌ Test Failed for Build #${BUILD_NUMBER}\nSpecific Test Error:\n${testErrorLog}")
                     } else {
-                        sendToTelegram("🧪 Testing Status: ${status} for Build #${BUILD_NUMBER}")
+                        sendToTelegram("🧪 Testing Status: ${status} for Build #${BULD_NUMBER}")
                     }
                 }
             }
@@ -53,7 +53,7 @@ pipeline {
             steps {
                 script {
                     // Retrieve Docker credentials from Jenkins
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub_id', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                    withCredentials([usernamePasswor(credentialsId: 'dockerhub_id', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
                         def existImageID = sh(script: 'docker ps -aq -f name="${MY_IMAGE}"', returnStdout: true)
                         echo "ExistImageID:${existImageID}"
                         if (existImageID) {
