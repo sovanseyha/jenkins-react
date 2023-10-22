@@ -18,7 +18,7 @@ pipeline {
                     try {
                         sh "whoami"
                         sh "npm install"
-                        sh "docker build -t ${MY_IMAGE} ."
+                        sh "docker build -t ${MY_IMAGE}"
                         currentBuild.result = 'SUCCESS'
                     } catch (Exception e) {
                         currentBuild.result = 'FAILURE'
