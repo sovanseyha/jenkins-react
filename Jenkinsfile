@@ -18,13 +18,14 @@ pipeline {
                     try {
                         sh "whoami"
                         sh "npm install"
-                        sh "docker build -t ${MY_IMAGE}"
+                        sh "docker build -t ${MY_IMAGE} ."
                         currentBuild.result = 'SUCCESS'
-                        sendToTelegram("✅ Build Succeeded")
+                        sendToTelegram("✅ Build Succeeded for Build #${BUILD_NUMBER}")
                     } catch (Exception e) {
                         currentBuild.result = 'FAILURE'
                         currentBuild.description = e.toString()
-                        sendToTelegram("❌ Build Failed: ${e.getMessage()}")
+                        def errorLog = sh(script: 'cat ${JENKINS_HOME}/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log', returnStdout: true)
+                        sendToTelegram("❌ Build Failed for Build #${BUILD_NUMBER}\nError Message:\n${errorLog}")
                     }
                 }
             }
@@ -33,7 +34,7 @@ pipeline {
             steps {
                 script {
                     def status = currentBuild.resultIsBetterOrEqualTo('SUCCESS') ? 'Succeed' : 'Failed'
-                    sendToTelegram("🧪 Testing Status: ${status}")
+                    sendToTelegram("🧪 Testing Status: ${status} for Build #${BUILD_NUMBER}")
                 }
             }
         }
@@ -54,7 +55,7 @@ pipeline {
                         sh "docker run -d -p 3001:80 --name ${MY_IMAGE} -e DOCKER_USERNAME=$DOCKER_USERNAME -e DOCKER_PASSWORD=$DOCKER_PASSWORD ${MY_IMAGE}"
                     }
                     def status = currentBuild.resultIsBetterOrEqualTo('SUCCESS') ? 'Succeed' : 'Failed'
-                    sendToTelegram("🚀 Deployment Status: ${status}")
+                    sendToTelegram("🚀 Deployment Status: ${status} for Build #${BUILD_NUMBER}")
                 }
             }
         }
