@@ -35,7 +35,7 @@ pipeline {
                 script {
                     try {
                         def status = currentBuild.resultIsBetterOrEqualTo('SUCCESS') ? 'Succeed' : 'Failed'
-                        sendToTelegram("🧪 Testing Status: ${status} for Build #${BUILD_NUMBER}")
+                        sendToTelegram("🧪 Testing Status: ${status} for Build #${BUILD_NhUMBER}")
                     } catch (Exception e) {
                         currentBuild.result = 'FAILURE'
                         currentBuild.description = e.toString()
