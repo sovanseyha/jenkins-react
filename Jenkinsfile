@@ -18,9 +18,9 @@ pipeline {
                     try {
                         sh "whoami"
                         sh "npm install"
-                        sh "docker build -t ${MY_IMAGE}"
+                        sh "docker build -t ${MY_IMAGE} ."
                         currentBuild.result = 'SUCCESS'
-                        sendToTelegram("✅ Build Succeeded for Build #${BUILD_NUMBER} .")
+                        sendToTelegram("✅ Build Succeeded for Build #${BUILD_NUMBER}")
                     } catch (Exception e) {
                         currentBuild.result = 'FAILURE'
                         currentBuild.description = e.toString()
