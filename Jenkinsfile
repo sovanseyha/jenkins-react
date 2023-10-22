@@ -51,7 +51,7 @@ pipeline {
                 script {
                     try {
                         // Your deployment logic here
-                        def status = currentBuild.resultIsBetterOrEqualTo('SUCCESS') ? 'Succeed' : 'Failed'
+                        deff status = currentBuild.resultIsBetterOrEqualTo('SUCCESS') ? 'Succeed' : 'Failed'
                         sendToTelegram("🚀 Deployment Status: ${status} for Build #${BUILD_NUMBER}")
                     } catch (Exception e) {
                         currentBuild.result = 'FAILURE'
