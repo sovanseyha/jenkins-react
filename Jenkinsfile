@@ -19,13 +19,13 @@ pipeline {
                         sh "npm install"
                         sh "docker build -t ${MY_IMAGE} ."
                         currentBuild.result = 'SUCCESS'
-                        sendToTelegram("✅ Build Succeeded for Build #${BUILD_NUMBER}")
+                        sendToTelegram("✅ **Build Succeeded** for Build #${BUILD_NUMBER}")
                         sendSeparator() // Add a separator line
                     } catch (Exception e) {
                         currentBuild.result = 'FAILURE'
                         currentBuild.description = e.toString()
                         def errorLog = sh(script: 'cat ${JENKINS_HOME}/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log', returnStdout: true)
-                        sendToTelegram("❌ Build Failed for Build #${BUILD_NUMBER}\nError Message:\n${errorLog}")
+                        sendToTelegram("❌ **Build Failed** for Build #${BUILD_NUMBER}\n\n*Error Message:*\n```\n${errorLog}\n```")
                         sendSeparator() // Add a separator line
                         throw e // Re-throw the exception to stop the pipeline
                     }
@@ -37,12 +37,12 @@ pipeline {
                 script {
                     try {
                         def status = currentBuild.resultIsBetterOrEqualTo('SUCCESS') ? 'Succeed' : 'Failed'
-                        sendToTelegram("🧪 Testing Status: ${status} for Build #${BUILD_NUMBER}")
+                        sendToTelegram("🧪 **Testing Status:** *${status}* for Build #${BUILD_NUMBER}")
                         sendSeparator() // Add a separator line
                     } catch (Exception e) {
                         currentBuild.result = 'FAILURE'
                         currentBuild.description = e.toString()
-                        sendToTelegram("❌ Testing Failed for Build #${BUILD_NUMBER}\nError Message:\n${e.message}")
+                        sendToTelegram("❌ **Testing Failed** for Build #${BUILD_NUMBER}\n\n*Error Message:*\n```\n${e.message}\n```")
                         sendSeparator() // Add a separator line
                         throw e
                     }
@@ -64,12 +64,12 @@ pipeline {
                             }
                             sh "docker run -d -p 3001:80 --name ${MY_IMAGE} -e DOCKER_USERNAME=$DOCKER_USERNAME -e DOCKER_PASSWORD=$DOCKER_PASSWORD ${MY_IMAGE}"
                             def status = currentBuild.resultIsBetterOrEqualTo('SUCCESS') ? 'Succeed' : 'Failed'
-                            sendToTelegram("🚀 Deployment Status: ${status} for Build #${BUILD_NUMBER}")
+                            sendToTelegram("🚀 **Deployment Status:** *${status}* for Build #${BUILD_NUMBER}")
                             sendSeparator() // Add a separator line
                         } catch (Exception e) {
                             currentBuild.result = 'FAILURE'
                             currentBuild.description = e.toString()
-                            sendToTelegram("❌ Deployment Failed for Build #${BUILD_NUMBER}\nError Message:\n${e.message}")
+                            sendToTelegram("❌ **Deployment Failed** for Build #${BUILD_NUMBER}\n\n*Error Message:*\n```\n${e.message}\n```")
                             sendSeparator() // Add a separator line
                             throw e
                         }
@@ -83,11 +83,7 @@ pipeline {
 def sendToTelegram(message) {
     script {
         sh """
-            curl -s -X POST https://api.telegram.org/bot\${TELEGRAM_BOT_TOKEN}/sendMessage -d chat_id=\${TELEGRAM_CHAT_ID} -d parse_mode="HTML" -d text="${message}"
+            curl -s -X POST https://api.telegram.org/bot\${TELEGRAM_BOT_TOKEN}/sendMessage -d chat_id=\${TELEGRAM_CHAT_ID} -d parse_mode="MarkdownV2" -d text="${message}"
         """
     }
-}
-
-def sendSeparator() {
-    sendToTelegram("------------------------")
 }
