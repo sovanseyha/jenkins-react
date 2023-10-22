@@ -35,7 +35,7 @@ pipeline {
                 script {
                     try {
                         def status = currentBuild.resultIsBetterOrEqualTo('SUCCESS') ? 'Succeed' : 'Failed'
-                        sendToTelegram("🧪 Testing Status: ${status} for Build #${BUILD_NhUMBER}")
+                        sendToTelegram("🧪 Testing Status: ${status} for Build #${BUILD_NUMBER}")
                     } catch (Exception e) {
                         currentBuild.result = 'FAILURE'
                         currentBuild.description = e.toString()
@@ -54,7 +54,7 @@ pipeline {
                             echo "ExistImageID:${existImageID}"
                             if (existImageID) {
                                 echo '${existImageID} is removing ...'
-                                sh 'docker rrrrm -f ${MY_IMAGE}'
+                                sh 'docker rm -f ${MY_IMAGE}'
                             } else {
                                 echo 'No existing container'
                             }
