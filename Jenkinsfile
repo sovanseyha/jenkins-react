@@ -20,10 +20,10 @@ pipeline {
                         sh "npm install"
                         sh "docker build -t ${MY_IMAGE} ."
                         currentBuild.result = 'SUCCESS'
+                        sendToTelegram("✅ Build Succeeded")
                     } catch (Exception e) {
                         currentBuild.result = 'FAILURE'
                         currentBuild.description = e.toString()
-                        // Always send the error message to Telegram
                         sendToTelegram("❌ Build Failed: ${e.getMessage()}")
                     }
                 }
@@ -31,7 +31,10 @@ pipeline {
         }
         stage('Test') {
             steps {
-                echo "Testing ~~~~~~~~~~~~~~~"
+                script {
+                    def status = currentBuild.resultIsBetterOrEqualTo('SUCCESS') ? 'Succeed' : 'Failed'
+                    sendToTelegram("🧪 Testing Status: ${status}")
+                }
             }
         }
         stage('Deploy') {
@@ -50,25 +53,8 @@ pipeline {
                         // Use Docker credentials in the 'docker run' command
                         sh "docker run -d -p 3001:80 --name ${MY_IMAGE} -e DOCKER_USERNAME=$DOCKER_USERNAME -e DOCKER_PASSWORD=$DOCKER_PASSWORD ${MY_IMAGE}"
                     }
-                }
-            }
-        }
-        post {
-            always {
-                script {
                     def status = currentBuild.resultIsBetterOrEqualTo('SUCCESS') ? 'Succeed' : 'Failed'
-                    def message = "Jenkins Build Report:\n<b>Project</b> : jenkins-react\n<b>Branch</b>: master\n<b>Build Status</b>: ${status}\n"
-                    
-                    if (currentBuild.resultIsWorseThan('SUCCESS')) {
-                        // This condition checks if the build status is worse than SUCCESS
-                        message += "<b>Error Message</b>: ${currentBuild.description}\n"
-                    }
-                    
-                    message += "<b>Test Status</b>: ${status}\n<b>Deploy Status</b>: ${status}"
-                    
-                    sh """
-                        curl -s -X POST https://api.telegram.org/bot\${TELEGRAM_BOT_TOKEN}/sendMessage -d chat_id=\${TELEGRAM_CHAT_ID} -d parse_mode="HTML" -d text="${message}"
-                    """
+                    sendToTelegram("🚀 Deployment Status: ${status}")
                 }
             }
         }
@@ -77,10 +63,8 @@ pipeline {
 
 def sendToTelegram(message) {
     script {
-        telegramSend(
-            message: message,
-            chatId: env.TELEGRAM_CHAT_ID,
-            token: env.TELEGRAM_BOT_TOKEN
-        )
+        sh """
+            curl -s -X POST https://api.telegram.org/bot\${TELEGRAM_BOT_TOKEN}/sendMessage -d chat_id=\${TELEGRAM_CHAT_ID} -d parse_mode="HTML" -d text="${message}"
+        """
     }
 }
