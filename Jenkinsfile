@@ -23,7 +23,7 @@ pipeline {
                     } catch (Exception e) {
                         currentBuild.result = 'FAILURE'
                         currentBuild.description = e.toString()
-                        // Send error message to Telegram
+                        // Always send the error message to Telegram
                         sendToTelegram("❌ Build Failed: ${e.getMessage()}")
                     }
                 }
@@ -53,13 +53,14 @@ pipeline {
                 }
             }
         }
-        stage('Push Notification') {
-            steps {
+        post {
+            always {
                 script {
                     def status = currentBuild.resultIsBetterOrEqualTo('SUCCESS') ? 'Succeed' : 'Failed'
                     def message = "Jenkins Build Report:\n<b>Project</b> : jenkins-react\n<b>Branch</b>: master\n<b>Build Status</b>: ${status}\n"
                     
                     if (currentBuild.resultIsWorseThan('SUCCESS')) {
+                        // This condition checks if the build status is worse than SUCCESS
                         message += "<b>Error Message</b>: ${currentBuild.description}\n"
                     }
                     
