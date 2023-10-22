@@ -18,14 +18,24 @@ pipeline {
                     try {
                         sh "whoami"
                         sh "npm install"
-                        sh "docker build -t ${MY_IMAGE}"
+                        sh "docker build -t ${MY_IMAGE} ."
                         currentBuild.result = 'SUCCESS'
                         sendToTelegram("✅ Build Succeeded for Build #${BUILD_NUMBER}")
                     } catch (Exception e) {
                         currentBuild.result = 'FAILURE'
                         currentBuild.description = e.toString()
-                        def errorLog = sh(script: 'cat ${JENKINS_HOME}/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log', returnStdout: true)
-                        sendToTelegram("❌ Build Failed for Build #${BUILD_NUMBER}\nError Message:\n${errorLog}")
+
+                        // Capture a specific error from the console log
+                        def errorLog = sh(
+                            script: 'cat ${JENKINS_HOME}/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log | grep "SpecificErrorPattern"',
+                            returnStdout: true
+                        )
+
+                        if (errorLog) {
+                            sendToTelegram("❌ Build Failed for Build #${BUILD_NUMBER}\nSpecific Error:\n${errorLog}")
+                        } else {
+                            sendToTelegram("❌ Build Failed for Build #${BUILD_NUMBER}\nError Message:\n${e.getMessage()}")
+                        }
                     }
                 }
             }
