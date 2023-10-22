@@ -87,3 +87,7 @@ def sendToTelegram(message) {
         """
     }
 }
+
+def sendSeparator() {
+    sendToTelegram("------------------------")
+}
