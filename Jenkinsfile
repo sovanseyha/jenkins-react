@@ -7,6 +7,9 @@ pipeline {
         MY_IMAGE = 'seiha-react-img'
         DOCKER_REGISTRY = 'sovanseyha'
         CONTAINER_NAME = 'jenkins-container' // Specify the name of your container
+        // Add your Telegram credentials
+        TELEGRAM_BOT_TOKEN = credentials('telegramToken')
+        TELEGRAM_CHAT_ID = credentials('telegramChatid')
     }
     stages {
         stage('Build') {
@@ -15,11 +18,13 @@ pipeline {
                     try {
                         sh "whoami"
                         sh "npm install"
-                        sh "docker build -t ${MY_IMAGE} ."
+                        sh "docker build -t ${MY_IMAGE}"
                         currentBuild.result = 'SUCCESS'
                     } catch (Exception e) {
                         currentBuild.result = 'FAILURE'
                         currentBuild.description = e.toString()
+                        // Send error message to Telegram
+                        sendToTelegram("❌ Build Failed: ${e.getMessage()}")
                     }
                 }
             }
@@ -51,20 +56,27 @@ pipeline {
         stage('Push Notification') {
             steps {
                 script {
-                    withCredentials([string(credentialsId: 'telegramToken', variable: 'TOKEN'),
-                                    string(credentialsId: 'telegramChatid', variable: 'CHAT_ID')]) {
-                        def status = currentBuild.resultIsBetterOrEqualTo('SUCCESS') ? 'Succeed' : 'Failed'
-                        sh """
-                            curl -s -X POST https://api.telegram.org/bot\${TOKEN}/sendMessage -d chat_id=\${CHAT_ID} -d parse_mode="HTML" -d text="Jenkins Build Report:
-                            <b>Project</b> : jenkins-react
-                            <b>Branch</b>: master
-                            <b>Build Status</b>: ${status}
-                            <b>Test Status</b>: ${status}
-                            <b>Deploy Status</b>: ${status}"
-                        """
-                    }
+                    def status = currentBuild.resultIsBetterOrEqualTo('SUCCESS') ? 'Succeed' : 'Failed'
+                    sh """
+                        curl -s -X POST https://api.telegram.org/bot\${TELEGRAM_BOT_TOKEN}/sendMessage -d chat_id=\${TELEGRAM_CHAT_ID} -d parse_mode="HTML" -d text="Jenkins Build Report:
+                        <b>Project</b> : jenkins-react
+                        <b>Branch</b>: master
+                        <b>Build Status</b>: ${status}
+                        <b>Test Status</b>: ${status}
+                        <b>Deploy Status</b>: ${status}"
+                    """
                 }
             }
         }
+    }
+}
+
+def sendToTelegram(message) {
+    script {
+        telegramSend(
+            message: message,
+            chatId: env.TELEGRAM_CHAT_ID,
+            token: env.TELEGRAM_BOT_TOKEN
+        )
     }
 }
