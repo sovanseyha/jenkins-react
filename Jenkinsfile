@@ -18,7 +18,7 @@ pipeline {
                     try {
                         sh "whoami"
                         sh "npm install"
-                        sh "docker build -t ${MY_IMAGE}"
+                        sh "docker build -t ${MY_IMAGE} "
                         currentBuild.result = 'SUCCESS'
                     } catch (Exception e) {
                         currentBuild.result = 'FAILURE'
@@ -57,13 +57,16 @@ pipeline {
             steps {
                 script {
                     def status = currentBuild.resultIsBetterOrEqualTo('SUCCESS') ? 'Succeed' : 'Failed'
+                    def message = "Jenkins Build Report:\n<b>Project</b> : jenkins-react\n<b>Branch</b>: master\n<b>Build Status</b>: ${status}\n"
+                    
+                    if (currentBuild.resultIsWorseThan('SUCCESS')) {
+                        message += "<b>Error Message</b>: ${currentBuild.description}\n"
+                    }
+                    
+                    message += "<b>Test Status</b>: ${status}\n<b>Deploy Status</b>: ${status}"
+                    
                     sh """
-                        curl -s -X POST https://api.telegram.org/bot\${TELEGRAM_BOT_TOKEN}/sendMessage -d chat_id=\${TELEGRAM_CHAT_ID} -d parse_mode="HTML" -d text="Jenkins Build Report:
-                        <b>Project</b> : jenkins-react
-                        <b>Branch</b>: master
-                        <b>Build Status</b>: ${status}
-                        <b>Test Status</b>: ${status}
-                        <b>Deploy Status</b>: ${status}"
+                        curl -s -X POST https://api.telegram.org/bot\${TELEGRAM_BOT_TOKEN}/sendMessage -d chat_id=\${TELEGRAM_CHAT_ID} -d parse_mode="HTML" -d text="${message}"
                     """
                 }
             }
