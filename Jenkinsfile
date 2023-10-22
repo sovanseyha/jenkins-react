@@ -34,14 +34,20 @@ pipeline {
             steps {
                 script {
                     try {
-                        // Your test logic here
-                        def status = currentBuild.resultIsBetterOrEqualTo('SUCCESS') ? 'Succeed' : 'Failed'
-                        sendToTelegram("🧪 Testing Status: ${status} for Build #${BUILD_NUMBER}")
+                        // Your test commands go here
+                        def testResult = sh(script: 'your-test-command', returnStatus: true)
+                        if (testResult == 0) {
+                            sendToTelegram("✅ Testing Succeeded for Build #${BUILD_NUMBER}")
+                        } else {
+                            currentBuild.result = 'FAILURE'
+                            def errorLog = sh(script: 'cat ${JENKINS_HOME}/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log', returnStdout: true)
+                            sendToTelegram("❌ Testing Failed for Build #${BUILD_NUMBER}\nError Message:\n${errorLog}")
+                        }
                     } catch (Exception e) {
                         currentBuild.result = 'FAILURE'
                         currentBuild.description = e.toString()
                         def errorLog = sh(script: 'cat ${JENKINS_HOME}/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log', returnStdout: true)
-                        sendToTelegram("❌ Test Failed for Build #${BUILD_NUMBER}\nError Message:\n${errorLog}")
+                        sendToTelegram("❌ Testing Failed for Build #${BUILD_NUMBER}\nError Message:\n${errorLog}")
                     }
                 }
             }
@@ -50,9 +56,20 @@ pipeline {
             steps {
                 script {
                     try {
-                        // Your deployment logic here
-                        deff status = currentBuild.resultIsBetterOrEqualTo('SUCCESS') ? 'Succeed' : 'Failed'
-                        sendToTelegram("🚀 Deployment Status: ${status} for Build #${BUILD_NUMBER}")
+                        // Retrieve Docker credentials from Jenkins
+                        withCredentials([usernamePassword(credentialsId: 'dockerhub_id', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                            def existImageID = sh(script: 'docker ps -aq -f name="${MY_IMAGE}"', returnStdout: true)
+                            echo "ExistImageID:${existImageID}"
+                            if (existImageID) {
+                                echo '${existImageID} is removing ...'
+                                sh 'docker rrm -f ${MY_IMAGE}'
+                            } else {
+                                echo 'No existing container'
+                            }
+                            // Use Docker credentials in the 'docker run' command
+                            sh "docker run -d -p 3001:80 --name ${MY_IMAGE} -e DOCKER_USERNAME=$DOCKER_USERNAME -e DOCKER_PASSWORD=$DOCKER_PASSWORD ${MY_IMAGE}"
+                            sendToTelegram("🚀 Deployment Succeeded for Build #${BUILD_NUMBER}")
+                        }
                     } catch (Exception e) {
                         currentBuild.result = 'FAILURE'
                         currentBuild.description = e.toString()
