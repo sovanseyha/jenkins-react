@@ -76,8 +76,8 @@ pipeline {
         always {
             emailext subject: "${PROJECT_NAME} - Build #${BUILD_NUMBER} - $BUILD_STATUS",
                       body: "Check console output at $BUILD_URL to view the results.",
-                      to: "yan.sovanseyha@gmail.com"  // Enter the recipient's email address
-                      recipientProviders: [[$class: 'CulpritsRecipientProvider']]
+                      to: "yan.sovanseyha@gmail.com", // Enter the recipient's email address
+                      recipientProviders: [culprits()]
         }
     }
 }
