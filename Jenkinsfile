@@ -75,7 +75,7 @@ pipeline {
     post {
         always {
             script {
-                sendToTelegramAndEmail("Check console output at $BUILD_URL to view the results.", "${PROJECT_NAME} - Build #${BUILD_NUMBER} - $BUILD_STATUS")
+                sendToTelegramAndEmail("Check console output at $BUILD_URL to view the results", "${currentBuild.project} - Build #${BUILD_NUMBER} - ${currentBuild.currentResult}")
             }
         }
     }
