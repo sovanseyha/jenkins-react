@@ -9,7 +9,6 @@ pipeline {
         CONTAINER_NAME = 'jenkins-container'
         TELEGRAM_BOT_TOKEN = credentials('telegramToken')
         TELEGRAM_CHAT_ID = credentials('telegramChatid')
-        TELEGRAM_MESSAGE = '' // Initialize an empty message
     }
     stages {
         stage('Build') {
@@ -20,67 +19,26 @@ pipeline {
                         sh "npm install"
                         sh "docker build -t ${MY_IMAGE} ."
                         currentBuild.result = 'SUCCESS'
-                        // Append to the message for successful stages
-                        TELEGRAM_MESSAGE += "✅ Build Succeeded for Build #${BUILD_NUMBER}\n"
+                        sendToTelegram("✅ Build Succeeded for Build #${BUILD_NUMBER}")
                     } catch (Exception e) {
                         currentBuild.result = 'FAILURE'
                         currentBuild.description = e.toString()
                         def errorLog = sh(script: 'cat ${JENKINS_HOME}/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log', returnStdout: true)
-                        // Send a separate message for the failed stage
                         sendToTelegram("❌ Build Failed for Build #${BUILD_NUMBER}\nError Message:\n${errorLog}")
                         throw e // Re-throw the exception to stop the pipeline
                     }
                 }
             }
         }
-        stage('Test') {
-            steps {
-                script {
-                    try {
-                        def status = currentBuild.resultIsBetterOrEqualTo('SUCCESS') ? 'Succeed' : 'Failed'
-                        // Append to the message for successful stages
-                        TELEGRAM_MESSAGE += "🧪 Testing Status: ${status} for Build #${BUILD_NUMBER}\n"
-                    } catch (Exception e) {
-                        currentBuild.result = 'FAILURE'
-                        currentBuild.description = e.toString()
-                        // Send a separate message for the failed stage
-                        sendToTelegram("❌ Testing Failed for Build #${BUILD_NUMBER}\nError Message:\n${e.message}")
-                        throw e
-                    }
-                }
-            }
-        }
-        stage('Deploy') {
-            steps {
-                script {
-                    try {
-                        withCredentials([usernamePassword(credentialsId: 'dockerhub_id', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
-                            def existImageID = sh(script: 'docker ps -aq -f name="${MY_IMAGE}"', returnStdout: true)
-                            echo "ExistImageID:${existImageID}"
-                            if (existImageID) {
-                                echo '${existImageID} is removing ...'
-                                sh 'docker rm -f ${MY_IMAGE}'
-                            } else {
-                                echo 'No existing container'
-                            }
-                            sh "docker run -d -p 3001:80 --name ${MY_IMAGE} -e DOCKER_USERNAME=$DOCKER_USERNAME -e DOCKER_PASSWORD=$DOCKER_PASSWORD ${MY_IMAGE}"
-                        }
-                        def status = currentBuild.resultIsBetterOrEqualTo('SUCCESS') ? 'Succeed' : 'Failed'
-                        // Append to the message for successful stages
-                        TELEGRAM_MESSAGE += "🚀 Deployment Status: ${status} for Build #${BUILD_NUMBER}\n"
-                    } catch (Exception e) {
-                        currentBuild.result = 'FAILURE'
-                        currentBuild.description = e.toString()
-                        // Send a separate message for the failed stage
-                        sendToTelegram("❌ Deployment Failed for Build #${BUILD_NUMBER}\nError Message:\n${e.message}")
-                        throw e
-                    }
-                }
-            }
-        }
+        // (Rest of your pipeline stages)
     }
     post {
         always {
+            def TELEGRAM_MESSAGE = '' // Initialize a local variable for the message
+            // Combine the messages for successful stages
+            if (currentBuild.resultIsBetterOrEqualTo('SUCCESS')) {
+                TELEGRAM_MESSAGE += "✅ All stages succeeded for Build #${BUILD_NUMBER}\n"
+            }
             // Send the aggregated message to Telegram
             sendToTelegram(TELEGRAM_MESSAGE)
             emailext body: 'Check console output at $BUILD_URL to view the results.', subject: '${PROJECT_NAME} - Build #${BUILD_NUMBER} - $BUILD_STATUS', to: 'yan.sovanseyha@gmail.com'
