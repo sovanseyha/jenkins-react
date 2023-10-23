@@ -19,13 +19,13 @@ pipeline {
                         sh "npm install"
                         sh "docker build -t ${MY_IMAGE} ."
                         currentBuild.result = 'SUCCESS'
-                        sendToTelegram("✅ Build Succeeded for Build #${BUILD_NUMBER}")
+                        sendToTelegram("✅ Build: Succeeded\nCheck console output at $BUILD_URL to view the results.\n")
                     } catch (Exception e) {
                         currentBuild.result = 'FAILURE'
                         currentBuild.description = e.toString()
                         def errorLog = sh(script: 'cat ${JENKINS_HOME}/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log', returnStdout: true)
-                        sendToTelegram("❌ Build Failed for Build #${BUILD_NUMBER}\nError Message:\n${errorLog}")
-                        throw e // Re-throw the exception to stop the pipeline
+                        sendToTelegram("❌ Build: Failed\nError Message:\n${errorLog}\nCheck console output at $BUILD_URL for details.\n")
+                        throw e
                     }
                 }
             }
@@ -34,12 +34,12 @@ pipeline {
             steps {
                 script {
                     try {
-                        def status = currentBuild.resultIsBetterOrEqualTo('SUCCESS') ? 'Succeed' : 'Failed'
-                        sendToTelegram("🧪 Testing Status: ${status} for Build #${BUILD_NUMBER}")
+                        def status = currentBuild.resultIsBetterOrEqualTo('SUCCESS') ? 'Succeeded' : 'Failed'
+                        sendToTelegram("🧪 Testing: ${status}\nCheck console output at $BUILD_URL to view the results.\n")
                     } catch (Exception e) {
                         currentBuild.result = 'FAILURE'
                         currentBuild.description = e.toString()
-                        sendToTelegram("❌ Testing Failed for Build #${BUILD_NUMBER}\nError Message:\n${e.message}")
+                        sendToTelegram("❌ Testing: Failed\nError Message:\n${e.message}\nCheck console output at $BUILD_URL for details.\n")
                         throw e
                     }
                 }
@@ -51,21 +51,21 @@ pipeline {
                     try {
                         withCredentials([usernamePassword(credentialsId: 'dockerhub_id', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
                             def existImageID = sh(script: 'docker ps -aq -f name="${MY_IMAGE}"', returnStdout: true)
-                            echo "ExistImageID:${existImageID}"
+                            echo "ExistImageID: ${existImageID}"
                             if (existImageID) {
-                                echo '${existImageID} is removing ...'
+                                echo 'Removing existing container...\n'
                                 sh 'docker rm -f ${MY_IMAGE}'
                             } else {
-                                echo 'No existing container'
+                                echo 'No existing container\n'
                             }
                             sh "docker -d -p 3001:80 --name ${MY_IMAGE} -e DOCKER_USERNAME=$DOCKER_USERNAME -e DOCKER_PASSWORD=$DOCKER_PASSWORD ${MY_IMAGE}"
                         }
-                        def status = currentBuild.resultIsBetterOrEqualTo('SUCCESS') ? 'Succeed' : 'Failed'
-                        sendToTelegram("🚀 Deployment Status: ${status} for Build #${BUILD_NUMBER}")
+                        def status = currentBuild.resultIsBetterOrEqualTo('SUCCESS') ? 'Succeeded' : 'Failed'
+                        sendToTelegram("🚀 Deployment: ${status}\nCheck console output at $BUILD_URL to view the results.\n")
                     } catch (Exception e) {
                         currentBuild.result = 'FAILURE'
                         currentBuild.description = e.toString()
-                        sendToTelegram("❌ Deployment Failed for Build #${BUILD_NUMBER}\nError Message:\n${e.message}")
+                        sendToTelegram("❌ Deployment: Failed\nError Message:\n${e.message}\nCheck console output at $BUILD_URL for details.\n")
                         throw e
                     }
                 }
@@ -74,22 +74,15 @@ pipeline {
     }
     post {
         always {
-            script {
-                def emailSubject = "${JOB_NAME} - Build #${BUILD_NUMBER} - ${BUILD_STATUS}"
-                sendToTelegramAndEmail("Check console output at $BUILD_URL to view the results", emailSubject)
-            }
+            emailext body: 'Check console output at $BUILD_URL to view the results.', subject: "${JOB_NAME} - Build #${BUILD_NUMBER} - ${BUILD_STATUS}", to: 'yan.sovanseyha@gmail.com'
         }
     }
 }
 
-def sendToTelegramAndEmail(message, emailSubject) {
+def sendToTelegram(message) {
     script {
-        // Send message to Telegram
         sh """
             curl -s -X POST https://api.telegram.org/bot\${TELEGRAM_BOT_TOKEN}/sendMessage -d chat_id=\${TELEGRAM_CHAT_ID} -d parse_mode="HTML" -d text="${message}"
         """
-        
-        // Send email
-        emailext body: message, subject: emailSubject, to: 'yan.sovanseyha@gmail.com'
     }
 }
