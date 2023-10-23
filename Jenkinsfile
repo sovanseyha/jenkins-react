@@ -30,17 +30,62 @@ pipeline {
                 }
             }
         }
-        // (Rest of your pipeline stages)
+        stage('Test') {
+            steps {
+                script {
+                    try {
+                        def status = currentBuild.resultIsBetterOrEqualTo('SUCCESS') ? 'Succeed' : 'Failed'
+                        sendToTelegram("🧪 Testing Status: ${status} for Build #${BUILD_NUMBER}")
+                    } catch (Exception e) {
+                        currentBuild.result = 'FAILURE'
+                        currentBuild.description = e.toString()
+                        sendToTelegram("❌ Testing Failed for Build #${BUILD_NUMBER}\nError Message:\n${e.message}")
+                        throw e
+                    }
+                }
+            }
+        }
+        stage('Deploy') {
+            steps {
+                script {
+                    try {
+                        withCredentials([usernamePassword(credentialsId: 'dockerhub_id', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                            def existImageID = sh(script: 'docker ps -aq -f name="${MY_IMAGE}"', returnStdout: true)
+                            echo "ExistImageID:${existImageID}"
+                            if (existImageID) {
+                                echo '${existImageID} is removing ...'
+                                sh 'docker rm -f ${MY_IMAGE}'
+                            } else {
+                                echo 'No existing container'
+                            }
+                            sh "docker -d -p 3001:80 --name ${MY_IMAGE} -e DOCKER_USERNAME=$DOCKER_USERNAME -e DOCKER_PASSWORD=$DOCKER_PASSWORD ${MY_IMAGE}"
+                        }
+                        def status = currentBuild.resultIsBetterOrEqualTo('SUCCESS') ? 'Succeed' : 'Failed'
+                        sendToTelegram("🚀 Deployment Status: ${status} for Build #${BUILD_NUMBER}")
+                    } catch (Exception e) {
+                        currentBuild.result = 'FAILURE'
+                        currentBuild.description = e.toString()
+                        sendToTelegram("❌ Deployment Failed for Build #${BUILD_NUMBER}\nError Message:\n${e.message}")
+                        throw e
+                    }
+                }
+            }
+        }
     }
     post {
-        always {
-            def TELEGRAM_MESSAGE = '' // Initialize a local variable for the message
-            // Combine the messages for successful stages
-            if (currentBuild.resultIsBetterOrEqualTo('SUCCESS')) {
-                TELEGRAM_MESSAGE += "✅ All stages succeeded for Build #${BUILD_NUMBER}\n"
+        success {
+            script {
+                // Send a single success message if all stages succeed
+                sendToTelegram("✅ All stages succeeded for Build #${BUILD_NUMBER}")
             }
-            // Send the aggregated message to Telegram
-            sendToTelegram(TELEGRAM_MESSAGE)
+        }
+        failure {
+            script {
+                // Send a failure message for the specific failed stage
+                sendToTelegram("❌ ${currentBuild.currentExecutable.displayName} Failed for Build #${BUILD_NUMBER}\nError Message:\n${currentBuild.description}")
+            }
+        }
+        always {
             emailext body: 'Check console output at $BUILD_URL to view the results.', subject: '${PROJECT_NAME} - Build #${BUILD_NUMBER} - $BUILD_STATUS', to: 'yan.sovanseyha@gmail.com'
         }
     }
