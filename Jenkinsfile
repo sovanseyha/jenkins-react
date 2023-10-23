@@ -19,18 +19,22 @@ pipeline {
                         sh "npm install"
                         sh "docker build -t ${MY_IMAGE} ."
                         currentBuild.result = 'SUCCESS'
-                        sendToTelegram("```
+                        sendToTelegram("""\
+
 ✅ Build Succeeded for Build #${BUILD_NUMBER}
-```")
+
+""")
                     } catch (Exception e) {
                         currentBuild.result = 'FAILURE'
                         currentBuild.description = e.toString()
                         def errorLog = sh(script: 'cat ${JENKINS_HOME}/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log', returnStdout: true)
-                        sendToTelegram("```
+                        sendToTelegram("""\
+
 ❌ Build Failed for Build #${BUILD_NUMBER}
 Error Message:
 ${errorLog}
-```")
+
+""")
                         throw e // Re-throw the exception to stop the pipeline
                     }
                 }
@@ -41,17 +45,21 @@ ${errorLog}
                 script {
                     try {
                         def status = currentBuild.resultIsBetterOrEqualTo('SUCCESS') ? 'Succeed' : 'Failed'
-                        sendToTelegram("```
+                        sendToTelegram("""\
+
 🧪 Testing Status: ${status} for Build #${BUILD_NUMBER}
-```")
+
+""")
                     } catch (Exception e) {
                         currentBuild.result = 'FAILURE'
                         currentBuild.description = e.toString()
-                        sendToTelegram("```
+                        sendToTelegram("""\
+
 ❌ Testing Failed for Build #${BUILD_NUMBER}
 Error Message:
 ${e.message}
-```")
+
+""")
                         throw e
                     }
                 }
@@ -73,17 +81,21 @@ ${e.message}
                             sh "docker -d -p 3001:80 --name ${MY_IMAGE} -e DOCKER_USERNAME=$DOCKER_USERNAME -e DOCKER_PASSWORD=$DOCKER_PASSWORD ${MY_IMAGE}"
                         }
                         def status = currentBuild.resultIsBetterOrEqualTo('SUCCESS') ? 'Succeed' : 'Failed'
-                        sendToTelegram("```
+                        sendToTelegram("""\
+
 🚀 Deployment Status: ${status} for Build #${BUILD_NUMBER}
-```")
+
+""")
                     } catch (Exception e) {
                         currentBuild.result = 'FAILURE'
                         currentBuild.description = e.toString()
-                        sendToTelegram("```
+                        sendToTelegram("""\
+
 ❌ Deployment Failed for Build #${BUILD_NUMBER}
 Error Message:
 ${e.message}
-```")
+
+""")
                         throw e
                     }
                 }
