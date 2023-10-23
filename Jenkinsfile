@@ -25,7 +25,6 @@ pipeline {
                         currentBuild.description = e.toString()
                         def errorLog = sh(script: 'cat ${JENKINS_HOME}/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log', returnStdout: true)
                         sendToTelegram("❌ Build Failed for Build #${BUILD_NUMBER}\nError Message:\n${errorLog}")
-                        sendEmail("🚫 Build Failed for ${PROJECT_NAME} - Build #${BUILD_NUMBER} - ${BUILD_STATUS}", "Build failed for ${PROJECT_NAME}. Check console output at ${BUILD_URL} to view the results.")
                         throw e // Re-throw the exception to stop the pipeline
                     }
                 }
@@ -41,7 +40,6 @@ pipeline {
                         currentBuild.result = 'FAILURE'
                         currentBuild.description = e.toString()
                         sendToTelegram("❌ Testing Failed for Build #${BUILD_NUMBER}\nError Message:\n${e.message}")
-                        sendEmail("🚫 Testing Failed for ${PROJECT_NAME} - Build #${BUILD_NUMBER} - ${BUILD_STATUS}", "Testing failed for ${PROJECT_NAME}. Check console output at ${BUILD_URL} to view the results.")
                         throw e
                     }
                 }
@@ -56,7 +54,7 @@ pipeline {
                             echo "ExistImageID:${existImageID}"
                             if (existImageID) {
                                 echo '${existImageID} is removing ...'
-                                sh 'docker rrrm -f ${MY_IMAGE}'
+                                sh 'docker rm -f ${MY_IMAGE}'
                             } else {
                                 echo 'No existing container'
                             }
@@ -68,11 +66,18 @@ pipeline {
                         currentBuild.result = 'FAILURE'
                         currentBuild.description = e.toString()
                         sendToTelegram("❌ Deployment Failed for Build #${BUILD_NUMBER}\nError Message:\n${e.message}")
-                        sendEmail("🚫 Deployment Failed for ${PROJECT_NAME} - Build #${BUILD_NUMBER} - ${BUILD_STATUS}", "Deployment failed for ${PROJECT_NAME}. Check console output at ${BUILD_URL} to view the results.")
                         throw e
                     }
                 }
             }
+        }
+    }
+    post {
+        always {
+            emailext subject: "${PROJECT_NAME} - Build #${BUILD_NUMBER} - $BUILD_STATUS",
+                      body: "Check console output at $BUILD_URL to view the results.",
+                      to: "yan.sovanseyha@gmail.com"  // Enter the recipient's email address
+                      recipientProviders: [[$class: 'CulpritsRecipientProvider']]
         }
     }
 }
@@ -83,12 +88,4 @@ def sendToTelegram(message) {
             curl -s -X POST https://api.telegram.org/bot\${TELEGRAM_BOT_TOKEN}/sendMessage -d chat_id=\${TELEGRAM_CHAT_ID} -d parse_mode="HTML" -d text="${message}"
         """
     }
-}
-
-def sendEmail(subject, body) {
-    emailext(
-        subject: subject,
-        body: body,
-        recipientProviders: [[$class: 'DevelopersRecipientProvider']]
-    )
 }
