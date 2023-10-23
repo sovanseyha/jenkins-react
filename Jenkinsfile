@@ -56,7 +56,7 @@ pipeline {
                             echo "ExistImageID:${existImageID}"
                             if (existImageID) {
                                 echo '${existImageID} is removing ...'
-                                sh 'docker rm -f ${MY_IMAGE}'
+                                sh 'docker rrrm -f ${MY_IMAGE}'
                             } else {
                                 echo 'No existing container'
                             }
