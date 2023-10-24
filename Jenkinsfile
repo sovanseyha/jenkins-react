@@ -58,7 +58,7 @@ pipeline {
                             } else {
                                 echo 'No existing container\n'
                             }
-                            sh "docker -d -p 3001:80 --name ${MY_IMAGE} -e DOCKER_USERNAME=$DOCKER_USERNAME -e DOCKER_PASSWORD=$DOCKER_PASSWORD ${MY_IMAGE}"
+                            sh "docker run -d -p 3001:80 --name ${MY_IMAGE} -e DOCKER_USERNAME=$DOCKER_USERNAME -e DOCKER_PASSWORD=$DOCKER_PASSWORD ${MY_IMAGE}"
                         }
                         def status = currentBuild.resultIsBetterOrEqualTo('SUCCESS') ? 'Succeeded' : 'Failed'
                         sendToTelegram("🚀 Deployment: ${status}\nCheck console output at $BUILD_URL to view the results.\n")
