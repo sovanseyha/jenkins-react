@@ -24,7 +24,7 @@ pipeline {
                         currentBuild.result = 'FAILURE'
                         currentBuild.description = e.toString()
                         def errorLog = sh(script: 'cat ${JENKINS_HOME}/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log', returnStdout: true)
-                        sendToTelegram("❌ Build Failed for Build #${BUILD_NUMBER}\nError Message:\n${errorLog}\nCheck console output at $BUILD_URL to view the results.")
+                        sendToTelegram("❌ Build Failed for Build #${BUILD_NUMBER}\nError Message:\n${e.message}\nCheck console output at $BUILD_URL to view the results.")
                         throw e // Re-throw the exception to stop the pipeline
                     }
                 }
