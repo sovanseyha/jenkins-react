@@ -9,22 +9,27 @@ pipeline {
         CONTAINER_NAME = 'jenkins-container'
         TELEGRAM_BOT_TOKEN = credentials('telegramToken')
         TELEGRAM_CHAT_ID = credentials('telegramChatid')
+        combinedMessage = '' // Initialize an empty combined message
     }
     stages {
         stage('Build') {
             steps {
                 script {
                     try {
+                        // Build your code here
                         sh "whoami"
                         sh "npm install"
                         sh "docker build -t ${MY_IMAGE} ."
                         currentBuild.result = 'SUCCESS'
-                        sendToTelegram("✅ Build Succeeded for Build #${BUILD_NUMBER}")
+                        def buildMessage = "✅ Build Succeeded for Build #${BUILD_NUMBER}"
+                        combinedMessage += "\n${buildMessage}"
                     } catch (Exception e) {
                         currentBuild.result = 'FAILURE'
                         currentBuild.description = e.toString()
                         def errorLog = sh(script: 'cat ${JENKINS_HOME}/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log', returnStdout: true)
-                        sendToTelegram("❌ Build Failed for Build #${BUILD_NUMBER}\nError Message:\n${errorLog}")
+                        def errorMessage = "❌ Build Failed for Build #${BUILD_NUMBER}\nError Message:\n${errorLog}"
+                        combinedMessage += "\n${errorMessage}"
+                        sendToTelegram(combinedMessage) // Send the message now
                         throw e // Re-throw the exception to stop the pipeline
                     }
                 }
@@ -34,12 +39,16 @@ pipeline {
             steps {
                 script {
                     try {
+                        // Perform testing here
                         def status = currentBuild.resultIsBetterOrEqualTo('SUCCESS') ? 'Succeed' : 'Failed'
-                        sendToTelegram("🧪 Testing Status: ${status} for Build #${BUILD_NUMBER}")
+                        def testMessage = "🧪 Testing Status: ${status} for Build #${BUILD_NUMBER}"
+                        combinedMessage += "\n${testMessage}"
                     } catch (Exception e) {
                         currentBuild.result = 'FAILURE'
                         currentBuild.description = e.toString()
-                        sendToTelegram("❌ Testing Failed for Build #${BUILD_NUMBER}\nError Message:\n${e.message}")
+                        def errorMessage = "❌ Testing Failed for Build #${BUILD_NUMBER}\nError Message:\n${e.message}"
+                        combinedMessage += "\n${errorMessage}"
+                        sendToTelegram(combinedMessage) // Send the message now
                         throw e
                     }
                 }
@@ -49,6 +58,7 @@ pipeline {
             steps {
                 script {
                     try {
+                        // Deploy your application here
                         withCredentials([usernamePassword(credentialsId: 'dockerhub_id', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
                             def existImageID = sh(script: 'docker ps -aq -f name="${MY_IMAGE}"', returnStdout: true)
                             echo "ExistImageID:${existImageID}"
@@ -61,11 +71,14 @@ pipeline {
                             sh "docker run -d -p 3001:80 --name ${MY_IMAGE} -e DOCKER_USERNAME=$DOCKER_USERNAME -e DOCKER_PASSWORD=$DOCKER_PASSWORD ${MY_IMAGE}"
                         }
                         def status = currentBuild.resultIsBetterOrEqualTo('SUCCESS') ? 'Succeed' : 'Failed'
-                        sendToTelegram("🚀 Deployment Status: ${status} for Build #${BUILD_NUMBER}")
+                        def deployMessage = "🚀 Deployment Status: ${status} for Build #${BUILD_NUMBER}"
+                        combinedMessage += "\n${deployMessage}"
                     } catch (Exception e) {
                         currentBuild.result = 'FAILURE'
                         currentBuild.description = e.toString()
-                        sendToTelegram("❌ Deployment Failed for Build #${BUILD_NUMBER}\nError Message:\n${e.message}")
+                        def errorMessage = "❌ Deployment Failed for Build #${BUILD_NUMBER}\nError Message:\n${e.message}"
+                        combinedMessage += "\n${errorMessage}"
+                        sendToTelegram(combinedMessage) // Send the message now
                         throw e
                     }
                 }
@@ -74,7 +87,7 @@ pipeline {
     }
     post {
         always {
-            emailext body: 'Check console output at $BUILD_URL to view the results.', subject: '${PROJECT_NAME} - Build #${BUILD_NUMBER} - $BUILD_STATUS', to: 'yan.sovanseyha@gmail.com'
+            emailext body: "Check console output at $BUILD_URL to view the results.", subject: "${PROJECT_NAME} - Build #${BUILD_NUMBER} - $BUILD_STATUS", to: 'yan.sovanseyha@gmail.com'
         }
     }
 }
