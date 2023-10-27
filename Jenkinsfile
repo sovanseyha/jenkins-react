@@ -8,7 +8,7 @@ environment {
 }
 tools {
    maven 'maven'
-   jdk 'java'
+   jdk 'jdk'
 }
 stages {
   stage('Build project') {
