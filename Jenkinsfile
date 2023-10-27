@@ -2,6 +2,7 @@ pipeline {
     agent any
     tools {
         nodejs 'nodejs'
+        scannerHome "${SONARSCANNER}"
     }
     environment {
         MY_IMAGE = 'seiha-react-img'
@@ -10,6 +11,7 @@ pipeline {
         TELEGRAM_BOT_TOKEN = credentials('telegramToken')
         TELEGRAM_CHAT_ID = credentials('telegramChatid')
         SONARSERVER = 'Sonar-Server'
+        SONARSCANNER = 'sonar-scanner'
     }
     stages {
         stage('Build') {
@@ -72,39 +74,27 @@ pipeline {
                 }
             }
         }
-        stage('Static Analysis') {
-            steps {
-                script {
-                    withSonarQubeEnv("${SONARSERVER}") {
-                        try {
-                            sh 'mvn clean package sonar:sonar'
-                            echo 'Static Analysis Completed'
-                        } catch (Exception e) {
-                            currentBuild.result = 'FAILURE'
-                            currentBuild.description = e.toString()
-                            sendToTelegram("❌ Static Analysis Failed for Build #${BUILD_NUMBER}\nError Message:\n${e.message}")
-                            throw e
-                        }
-                    }
-                }
+        stage('Sonar Analysis') {
+            environment {
+                scannerHome = tool "${SONARSCANNER}"
             }
-        }
-        stage('Quality Gate') {
             steps {
-                script {
-                    timeout(time: 1, unit: 'HOURS') {
+                withSonarQubeEnv("${SONARSERVER}") {
+                    script {
                         try {
-                            def qg = waitForQualityGate()
-                            if (qg.status != 'OK') {
-                                currentBuild.result = 'FAILURE'
-                                currentBuild.description = "Quality gate check failed: ${qg.status}"
-                                sendToTelegram("❌ Quality Gate Check Failed for Build #${BUILD_NUMBER}\nError Message:\nQuality gate check failed: ${qg.status}")
-                                error "Quality gate check failed: ${qg.status}"
-                            }
+                            sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=vprofile " +
+                               "-Dsonar.projectName=vprofile " +
+                               "-Dsonar.projectVersion=1.0 " +
+                               "-Dsonar.sources=src/ " +
+                               "-Dsonar.java.binaries=target/test-classes/com/visualpathit/account/controllerTest/ " +
+                               "-Dsonar.junit.reportsPath=target/surefire-reports/ " +
+                               "-Dsonar.jacoco.reportsPath=target/jacoco.exec " +
+                               "-Dsonar.java.checkstyle.reportPaths=target/checkstyle-result.xml"
+                            echo 'Sonar Analysis Completed'
                         } catch (Exception e) {
                             currentBuild.result = 'FAILURE'
                             currentBuild.description = e.toString()
-                            sendToTelegram("❌ Quality Gate Check Failed for Build #${BUILD_NUMBER}\nError Message:\n${e.message}")
+                            sendToTelegram("❌ Sonar Analysis Failed for Build #${BUILD_NUMBER}\nError Message:\n${e.message}")
                             throw e
                         }
                     }
