@@ -71,11 +71,9 @@ pipeline {
         }
         stage('Static Analysis') {
             steps {
-                node('any') { // Use 'any' label to run on any available agent
-                    withSonarQubeEnv("${SONARSERVER}") {
-                        sh 'mvn clean package sonar:sonar'
-                        echo 'Static Analysis Completed'
-                    }
+                withSonarQubeEnv("${SONARSERVER}") {
+                    sh 'mvn clean package sonar:sonar'
+                    echo 'Static Analysis Completed'
                 }
             }
         }
