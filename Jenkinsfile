@@ -9,6 +9,7 @@ pipeline {
         CONTAINER_NAME = 'jenkins-container'
         TELEGRAM_BOT_TOKEN = credentials('telegramToken')
         TELEGRAM_CHAT_ID = credentials('telegramChatid')
+        SONARSERVER = 'Sonar-Server'
     }
     stages {
         stage('Build') {
@@ -66,6 +67,27 @@ pipeline {
                         throw e
                     }
                 }
+            }
+        }
+        stage('Static Analysis') {
+            steps {
+                node {
+                    withSonarQubeEnv("${SONARSERVER}") {
+                        sh 'mvn clean package sonar:sonar'
+                        echo 'Static Analysis Completed'
+                    }
+                }
+            }
+        }
+        stage("Quality Gate") {
+            steps {
+                timeout(time: 1, unit: 'HOURS') {
+                    def qg = waitForQualityGate()
+                    if (qg.status != 'OK') {
+                        error "Pipeline aborted due to quality gate failure: ${qg.status}"
+                    }
+                }
+                echo 'Quality Gate Passed'
             }
         }
     }
