@@ -16,14 +16,17 @@ pipeline {
             steps {
                 script {
                     try {
-                        sh 'whoami'
-                        sh 'npm install'
+                        sh "whoami"
+                        sh "npm install"
                         sh "docker build -t ${MY_IMAGE} ."
+                        currentBuild.result = 'SUCCESS'
+                        sendToTelegram("✅ Build Succeeded for Build #${BUILD_NUMBER}")
                     } catch (Exception e) {
                         currentBuild.result = 'FAILURE'
-                        currentBuild.description = "Build step failed: ${e}"
-                        sendToTelegram("❌ Build Failed for Build #${BUILD_NUMBER}\nError Message:\n${e.message}")
-                        throw e
+                        currentBuild.description = e.toString()
+                        def errorLog = sh(script: 'cat ${JENKINS_HOME}/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log', returnStdout: true)
+                        sendToTelegram("❌ Build Failed for Build #${BUILD_NUMBER}\nError Message:\n${errorLog}")
+                        throw e // Re-throw the exception to stop the pipeline
                     }
                 }
             }
@@ -32,10 +35,11 @@ pipeline {
             steps {
                 script {
                     try {
-                        // Your testing steps here
+                        def status = currentBuild.resultIsBetterOrEqualTo('SUCCESS') ? 'Succeed' : 'Failed'
+                        sendToTelegram("🧪 Testing Status: ${status} for Build #${BUILD_NUMBER}")
                     } catch (Exception e) {
                         currentBuild.result = 'FAILURE'
-                        currentBuild.description = "Testing step failed: ${e}"
+                        currentBuild.description = e.toString()
                         sendToTelegram("❌ Testing Failed for Build #${BUILD_NUMBER}\nError Message:\n${e.message}")
                         throw e
                     }
@@ -46,10 +50,22 @@ pipeline {
             steps {
                 script {
                     try {
-                        // Your deployment steps here
+                        withCredentials([usernamePassword(credentialsId: 'dockerhub_id', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                            def existImageID = sh(script: 'docker ps -aq -f name="${MY_IMAGE}"', returnStdout: true)
+                            echo "ExistImageID:${existImageID}"
+                            if (existImageID) {
+                                echo '${existImageID} is removing ...'
+                                sh 'docker rm -f ${MY_IMAGE}'
+                            } else {
+                                echo 'No existing container'
+                            }
+                            sh "docker run -d -p 3001:80 --name ${MY_IMAGE} -e DOCKER_USERNAME=$DOCKER_USERNAME -e DOCKER_PASSWORD=$DOCKER_PASSWORD ${MY_IMAGE}"
+                        }
+                        def status = currentBuild.resultIsBetterOrEqualTo('SUCCESS') ? 'Succeed' : 'Failed'
+                        sendToTelegram("🚀 Deployment Status: ${status} for Build #${BUILD_NUMBER}")
                     } catch (Exception e) {
                         currentBuild.result = 'FAILURE'
-                        currentBuild.description = "Deployment step failed: ${e}"
+                        currentBuild.description = e.toString()
                         sendToTelegram("❌ Deployment Failed for Build #${BUILD_NUMBER}\nError Message:\n${e.message}")
                         throw e
                     }
@@ -59,15 +75,16 @@ pipeline {
         stage('Static Analysis') {
             steps {
                 script {
-                    try {
-                        withSonarQubeEnv("${SONARSERVER}") {
+                    withSonarQubeEnv("${SONARSERVER}") {
+                        try {
                             sh 'mvn clean package sonar:sonar'
+                            echo 'Static Analysis Completed'
+                        } catch (Exception e) {
+                            currentBuild.result = 'FAILURE'
+                            currentBuild.description = e.toString()
+                            sendToTelegram("❌ Static Analysis Failed for Build #${BUILD_NUMBER}\nError Message:\n${e.message}")
+                            throw e
                         }
-                    } catch (Exception e) {
-                        currentBuild.result = 'FAILURE'
-                        currentBuild.description = "Static analysis failed: ${e}"
-                        sendToTelegram("❌ Static Analysis Failed for Build #${BUILD_NUMBER}\nError Message:\n${e.message}")
-                        throw e
                     }
                 }
             }
@@ -76,12 +93,19 @@ pipeline {
             steps {
                 script {
                     timeout(time: 1, unit: 'HOURS') {
-                        def qg = waitForQualityGate()
-                        if (qg.status != 'OK') {
+                        try {
+                            def qg = waitForQualityGate()
+                            if (qg.status != 'OK') {
+                                currentBuild.result = 'FAILURE'
+                                currentBuild.description = "Quality gate check failed: ${qg.status}"
+                                sendToTelegram("❌ Quality Gate Check Failed for Build #${BUILD_NUMBER}\nError Message:\nQuality gate check failed: ${qg.status}")
+                                error "Quality gate check failed: ${qg.status}"
+                            }
+                        } catch (Exception e) {
                             currentBuild.result = 'FAILURE'
-                            currentBuild.description = "Quality gate check failed: ${qg.status}"
-                            sendToTelegram("❌ Quality Gate Check Failed for Build #${BUILD_NUMBER}\nError Message:\nQuality gate check failed: ${qg.status}")
-                            error "Quality gate check failed: ${qg.status}"
+                            currentBuild.description = e.toString()
+                            sendToTelegram("❌ Quality Gate Check Failed for Build #${BUILD_NUMBER}\nError Message:\n${e.message}")
+                            throw e
                         }
                     }
                 }
@@ -90,24 +114,7 @@ pipeline {
     }
     post {
         always {
-            script {
-                try {
-                    if (currentBuild.resultIsBetterOrEqualTo('FAILURE')) {
-                        // Clean up resources if the build has failed (e.g., Docker containers)
-                        sh "docker rm -f ${MY_IMAGE}" // Remove the Docker container if it exists
-                    }
-                } catch (Exception e) {
-                    currentBuild.result = 'FAILURE'
-                    currentBuild.description = "Resource cleanup failed: ${e}"
-                    sendToTelegram("❌ Resource Cleanup Failed for Build #${BUILD_NUMBER}\nError Message:\n${e.message}")
-                }
-                emailext body: 'Check console output at $BUILD_URL to view the results.',
-                    subject: '${PROJECT_NAME} - Build #${BUILD_NUMBER} - $BUILD_STATUS',
-                    to: 'yan.sovanseyha@gmail.com'
-                if (currentBuild.resultIsBetterOrEqualTo('SUCCESS')) {
-                    sendToTelegram("✅ Pipeline Succeeded for Build #${BUILD_NUMBER}")
-                }
-            }
+            emailext body: 'Check console output at $BUILD_URL to view the results.', subject: '${PROJECT_NAME} - Build #${BUILD_NUMBER} - $BUILD_STATUS', to: 'yan.sovanseyha@gmail.com'
         }
     }
 }
