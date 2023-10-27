@@ -73,21 +73,26 @@ pipeline {
             steps {
                 node('any') { // Use 'any' label to run on any available agent
                     withSonarQubeEnv("${SONARSERVER}") {
-                    sh 'mvn clean package sonar:sonar'
-                    echo 'Static Analysis Completed'
+                        sh 'mvn clean package sonar:sonar'
+                        echo 'Static Analysis Completed'
                     }
                 }
             }
         }
         stage("Quality Gate") {
             steps {
-                timeout(time: 1, unit: 'HOURS') {
-                    def qg = waitForQualityGate()
-                    if (qg.status != 'OK') {
-                        error "Pipeline aborted due to quality gate failure: ${qg.status}"
+                script {
+                    timeout(time: 1, unit: 'HOURS') {
+                        def qg = waitForQualityGate()
+                        if (qg.status != 'OK') {
+                            currentBuild.result = 'FAILURE'
+                            currentBuild.description = "Pipeline aborted due to quality gate failure: ${qg.status}"
+                            sendToTelegram("❌ Quality Gate Check Failed for Build #${BUILD_NUMBER}\nError Message:\nPipeline aborted due to quality gate failure: ${qg.status}")
+                            error "Pipeline aborted due to quality gate failure: ${qg.status}"
+                        }
                     }
+                    echo 'Quality Gate Passed'
                 }
-                echo 'Quality Gate Passed'
             }
         }
     }
