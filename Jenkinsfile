@@ -11,7 +11,7 @@ pipeline {
         TELEGRAM_BOT_TOKEN = credentials('telegramToken')
         TELEGRAM_CHAT_ID = credentials('telegramChatid')
         SONARSERVER = 'Sonar-Server'
-        SONARSCANNER = 'sonarscanner'
+        SONARSCANNER = 'SonarScannar'
     }
     stages {
         stage('Build') {
